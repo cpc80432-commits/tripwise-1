@@ -25,7 +25,7 @@ const TEMPLATES: Record<string, PlaceItem[][]> = {
   ],
   kyoto: [
     [
-      { time: '08:00', name: '早餐 · 錦市場', type: '美食', emoji: '🍢', address: '京都府京都市中京區錦市場', transitToNext: '公車 20 分鐘' },
+      { time: '08:00', name: '早餐 · 錦市場', type: '餐廳', emoji: '🍢', address: '京都府京都市中京區錦市場', transitToNext: '公車 20 分鐘' },
       { time: '09:30', name: '嵐山竹林', type: '景點', emoji: '🎋', address: '京都府京都市右京區嵯峨天龍寺', transitToNext: '步行 5 分鐘' },
       { time: '10:30', name: '天龍寺', type: '景點', emoji: '⛩️', address: '京都府京都市右京區嵯峨', transitToNext: '步行 10 分鐘' },
       { time: '12:00', name: '渡月橋', type: '景點', emoji: '🌉', address: '嵐山渡月橋', transitToNext: '公車 35 分鐘' },
