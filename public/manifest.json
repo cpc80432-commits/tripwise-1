@@ -1,0 +1,17 @@
+{
+  "name": "旅智 — AI 旅遊規劃助手",
+  "short_name": "旅智",
+  "description": "AI 幫你規劃完美旅程",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4F9B7F",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='44' fill='%234F9B7F'/><text y='130' x='28' font-size='120'>✈️</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}
