@@ -5,7 +5,7 @@ import { logAI } from './firestore'
 const TEMPLATES: Record<string, PlaceItem[][]> = {
   tokyo: [
     [
-      { time: '08:30', name: '築地場外市場', type: '美食', emoji: '🐟', address: '東京都中央區築地4丁目', transitToNext: '地鐵 12 分鐘' },
+      { time: '08:30', name: '築地場外市場', type: '餐廳', emoji: '🐟', address: '東京都中央區築地4丁目', transitToNext: '地鐵 12 分鐘' },
       { time: '10:30', name: '淺草寺', type: '景點', emoji: '⛩️', address: '東京都台東區淺草2丁目', transitToNext: '步行 3 分鐘' },
       { time: '11:00', name: '仲見世通商店街', type: '購物', emoji: '🏮', address: '淺草仲見世通', transitToNext: '地鐵 20 分鐘' },
       { time: '13:00', name: '午餐 · 一蘭拉麵', type: '餐廳', emoji: '🍜', address: '東京都台東區上野7丁目', transitToNext: '地鐵 15 分鐘' },
