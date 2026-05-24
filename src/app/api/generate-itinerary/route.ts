@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5',
-        max_tokens: 4000,
+        max_tokens: 8000,
         messages: [{
           role: 'user',
           content: `你是專業旅遊規劃師，請為以下旅程生成詳細行程。目的地：${destination}，天數：${days}天，預算：${budget} ${currency}，人數：${travelers}人。請只回傳JSON格式，不要其他文字：{"days":[{"day":1,"date":"","itinerary":[{"time":"09:00","name":"景點名稱","type":"景點","emoji":"🏛️","address":"地址","transitToNext":"交通方式10分鐘"}]}]}。每天安排5-7個地點，包含餐廳、景點、購物，使用繁體中文。`
