@@ -1,11 +1,12 @@
 'use client'
+import { SEARCH_DATA } from '@/data/destinations';
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { X, ChevronLeft } from 'lucide-react'
 import { useAuthStore, useUIStore } from '@/store'
 import { createTrip } from '@/lib/firestore'
-import { generateItinerary } from '@/lib/ai'
+import { generateItinerary, generateItineraryWithClaude } from '@/lib/ai'
 import { saveTripDay } from '@/lib/firestore'
 import { DestinationSearch } from '@/components/ui/DestinationSearch'
 import { TRAVEL_STYLES, DESTINATIONS } from '@/data/destinations'
@@ -72,7 +73,7 @@ export function CreateTripFlow() {
 
   const pickDest = (name: string) => {
     const entry = DESTINATIONS.find(d => d.name === name || d.nameEn === name)
-    const srcData = require('@/data/destinations').SEARCH_DATA
+    const srcData = SEARCH_DATA
     let flag = '🌏', country = ''
     for (const s of srcData) {
       if (s.country === name || s.cities.includes(name)) { flag = s.flag; country = s.country; break }
@@ -115,14 +116,14 @@ export function CreateTripFlow() {
       const tripId = await createTrip(tripData)
 
       // Save generated itinerary
-      const itinerary = generateItinerary({ ...tripData, tripId }, days)
+      const itinerary = await generateItineraryWithClaude(tripData.destination, days, tripData.budget, tripData.currency, tripData.travelers)
       await Promise.all(itinerary.map(d => saveTripDay(tripId, d.day, d)))
 
       toast.success('行程規劃完成！✨')
       close()
       router.push(`/trips/${tripId}`)
     } catch (e) {
-      toast.error('建立失敗，請再試一次')
+      console.error("建立失敗詳細錯誤:", e); toast.error('錯誤: ' + String(e))
       setGenerating(false); setStep(4)
     }
   }
