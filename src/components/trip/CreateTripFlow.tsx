@@ -8,6 +8,7 @@ import { useAuthStore, useUIStore } from '@/store'
 import { createTrip } from '@/lib/firestore'
 import { generateItinerary, generateItineraryWithClaude } from '@/lib/ai'
 import { saveTripDay } from '@/lib/firestore'
+import type { TripDay } from '@/types'
 import { DestinationSearch } from '@/components/ui/DestinationSearch'
 import { TRAVEL_STYLES, DESTINATIONS } from '@/data/destinations'
 import { differenceInDays, format, addDays } from 'date-fns'
@@ -117,7 +118,7 @@ export function CreateTripFlow() {
 
       // Save generated itinerary
       const itinerary = await generateItineraryWithClaude(tripData.destination, days, tripData.budget, tripData.currency, tripData.travelers)
-      await Promise.all(itinerary.map(d => saveTripDay(tripId, d.day, d)))
+      await Promise.all(itinerary.map((d: TripDay) => saveTripDay(tripId, d.day, d)))
 
       toast.success('行程規劃完成！✨')
       close()
