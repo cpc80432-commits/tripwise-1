@@ -135,12 +135,24 @@ export default function TripDetailPage() {
   const totalDays = days.length
   const nights    = Math.max(totalDays - 1, 0)
 
-  // 自動估算行程總花費
+  // 自動估算行程總花費（智慧解析）
   const estimatedCost = days.reduce((total, day) => {
     return total + (day.itinerary || []).reduce((dayTotal, place) => {
       if (!place.cost) return dayTotal
-      const num = parseInt(place.cost.replace(/[^0-9]/g, ''))
-      return dayTotal + (isNaN(num) ? 0 : num)
+      const cost = place.cost
+      // 免費/free 直接跳過
+      if (/免費|free|0元/i.test(cost)) return dayTotal
+      // 抓數字（最多6位，避免解析出天文數字）
+      const match = cost.match(/[0-9,]+/)
+      if (!match) return dayTotal
+      const num = parseInt(match[0].replace(/,/g, ''))
+      // 超過10萬的單筆費用不合理，跳過
+      if (isNaN(num) || num > 100000) return dayTotal
+      // 處理歐元/美元換算（粗估）
+      if (/€|EUR/i.test(cost)) return dayTotal + num * 35
+      if (/\$|USD/i.test(cost)) return dayTotal + num * 32
+      if (/¥|JPY/i.test(cost)) return dayTotal + num * 0.22
+      return dayTotal + num
     }, 0)
   }, 0)
 
