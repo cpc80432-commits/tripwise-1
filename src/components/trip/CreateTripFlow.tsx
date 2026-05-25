@@ -14,8 +14,8 @@ import { TRAVEL_STYLES, DESTINATIONS } from '@/data/destinations'
 import { differenceInDays, format, addDays } from 'date-fns'
 import toast from 'react-hot-toast'
 
-const TOTAL_STEPS = 5
-const STEP_LABELS = ['目的地', '日期', '旅遊風格', '預算', 'AI 生成中']
+const TOTAL_STEPS = 6
+const STEP_LABELS = ['目的地', '日期', '旅伴模式', '旅遊風格', '預算', 'AI 生成中']
 
 type FormData = {
   destination: string
@@ -27,6 +27,7 @@ type FormData = {
   budget: number
   currency: string
   travelers: number
+  travelMode: string
 }
 
 export function CreateTripFlow() {
@@ -40,7 +41,7 @@ export function CreateTripFlow() {
   const [form, setForm] = useState<FormData>({
     destination: '', country: '', countryFlag: '',
     startDate: '', endDate: '',
-    styles: [], budget: 30000, currency: 'TWD', travelers: 1,
+    styles: [], budget: 30000, currency: 'TWD', travelers: 1, travelMode: '獨旅',
   })
 
   const days = form.startDate && form.endDate
@@ -84,7 +85,8 @@ export function CreateTripFlow() {
 
   const runGeneration = async () => {
     if (!user) { toast.error('請先登入'); return }
-    setStep(5); setGenerating(true)
+    if (!form.startDate || !form.endDate) { toast.error('請選擇旅遊日期'); setStep(2); return }
+    setStep(6); setGenerating(true)
 
     const GEN_STEPS = [
       [20, '搜尋高評價景點…'],
@@ -117,7 +119,7 @@ export function CreateTripFlow() {
       const tripId = await createTrip(tripData)
 
       // Save generated itinerary
-      const itinerary = await generateItineraryWithClaude(tripData.destination, days, tripData.budget, tripData.currency, tripData.travelers)
+      const itinerary = await generateItineraryWithClaude(tripData.destination, days, tripData.budget, tripData.currency, tripData.travelers, form.travelMode)
       await Promise.all(itinerary.map((d: TripDay) => saveTripDay(tripId, d.day, d)))
 
       toast.success('行程規劃完成！✨')
@@ -224,8 +226,36 @@ export function CreateTripFlow() {
                   </motion.div>
                 )}
 
-                {/* Step 3: Styles */}
+
+                {/* Step 3: Travel Mode */}
                 {step === 3 && (
+                  <motion.div key="s3m" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                    <p className="text-xs font-bold text-brand-500 mb-2 tracking-widest">旅伴模式</p>
+                    <h2 className="text-2xl font-black text-gray-900 mb-2">這次和誰旅行？</h2>
+                    <p className="text-gray-500 text-sm mb-6">AI 將根據旅伴模式規劃最適合的行程</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      {[
+                        { id: '獨旅', emoji: '🎒', label: '獨旅', desc: '彈性自由，深度探索' },
+                        { id: '情侶', emoji: '💑', label: '情侶', desc: '浪漫氛圍，精緻體驗' },
+                        { id: '家庭', emoji: '👨‍👩‍👧‍👦', label: '家庭', desc: '親子友善，輕鬆愉快' },
+                        { id: '朋友', emoji: '👯', label: '朋友', desc: '熱鬧有趣，打卡美食' },
+                      ].map(m => (
+                        <button key={m.id} onClick={() => setForm(f => ({ ...f, travelMode: m.id }))}
+                          className={`p-5 rounded-2xl border-2 text-left transition-all ${
+                            form.travelMode === m.id
+                              ? 'border-brand-500 bg-brand-50' : 'border-gray-200 hover:border-gray-300'
+                          }`}>
+                          <div className="text-4xl mb-3">{m.emoji}</div>
+                          <div className="font-black text-gray-900 text-base">{m.label}</div>
+                          <div className="text-xs text-gray-500 mt-1">{m.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Step 4: Styles */}
+                {step === 4 && (
                   <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                     <p className="text-xs font-bold text-brand-500 mb-2 tracking-widest">旅遊風格</p>
                     <h2 className="text-2xl font-black text-gray-900 mb-2">你喜歡什麼旅行？</h2>
@@ -246,8 +276,8 @@ export function CreateTripFlow() {
                   </motion.div>
                 )}
 
-                {/* Step 4: Budget */}
-                {step === 4 && (
+                {/* Step 5: Budget */}
+                {step === 5 && (
                   <motion.div key="s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                     <p className="text-xs font-bold text-brand-500 mb-2 tracking-widest">旅行預算</p>
                     <h2 className="text-2xl font-black text-gray-900 mb-2">設定旅行預算</h2>
@@ -284,8 +314,8 @@ export function CreateTripFlow() {
                   </motion.div>
                 )}
 
-                {/* Step 5: Generating */}
-                {step === 5 && (
+                {/* Step 6: Generating */}
+                {step === 6 && (
                   <motion.div key="s5" initial={{ opacity: 0, scale: .9 }} animate={{ opacity: 1, scale: 1 }}
                     className="flex flex-col items-center justify-center py-8 text-center">
                     <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-gray-900 to-blue-900 flex items-center justify-center text-4xl mb-6 shadow-2xl">
@@ -321,13 +351,13 @@ export function CreateTripFlow() {
             </div>
 
             {/* Footer CTA */}
-            {step < 5 && (
+            {step < 6 && (
               <div className="px-6 pb-6 flex-shrink-0">
                 <button
-                  onClick={step === 4 ? runGeneration : next}
+                  onClick={step === 5 ? runGeneration : next}
                   className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-base hover:bg-gray-800 active:scale-95 transition-all"
                 >
-                  {step === 4 ? '開始 AI 規劃 🤖' : '繼續'}
+                  {step === 5 ? '開始 AI 規劃 🤖' : '繼續'}
                 </button>
               </div>
             )}

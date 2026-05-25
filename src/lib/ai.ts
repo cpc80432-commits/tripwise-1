@@ -98,12 +98,12 @@ export async function logAISuggestion(userId: string, trip: Trip, suggestions: s
 }
 
 export async function generateItineraryWithClaude(
-  destination: string, days: number, budget: number, currency: string, travelers: number
+  destination: string, days: number, budget: number, currency: string, travelers: number, travelMode: string = "獨旅"
 ) {
   const res = await fetch('/api/generate-itinerary', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ destination, days, budget, currency, travelers })
+    body: JSON.stringify({ destination, days, budget, currency, travelers, travelMode })
   })
   if (!res.ok) throw new Error('AI 生成失敗')
   const data = await res.json()

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
   try {
-    const { destination, days, budget, currency, travelers } = await req.json()
+    const { destination, days, budget, currency, travelers, travelMode = "獨旅" } = await req.json()
     const apiKey = process.env.CLAUDE_API_KEY
     if (!apiKey) return NextResponse.json({ error: 'CLAUDE_API_KEY 未設定' }, { status: 500 })
 
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
         max_tokens: 16000,
         messages: [{
           role: 'user',
-          content: `你是專業旅遊規劃師，請為以下旅程生成詳細行程。目的地：${destination}，天數：${days}天，預算：${budget} ${currency}，人數：${travelers}人。請只回傳JSON格式，不要其他文字：{"days":[{"day":1,"date":"","itinerary":[{"time":"09:00","name":"景點名稱","type":"景點","emoji":"🏛️","address":"地址","transitToNext":"交通方式10分鐘"}]}]}。每天安排5-7個地點，包含餐廳、景點、購物，使用繁體中文。`
+          content: `你是專業旅遊規劃師，請為以下旅程生成詳細行程。目的地：${destination}，天數：${days}天，預算：${budget} ${currency}，人數：${travelers}人，旅遊模式：${travelMode}。旅遊模式說明：獨旅=彈性自由個人探索；情侶=浪漫夕陽精緻餐廳；家庭=親子友善公園博物館；朋友=熱鬧夜生活美食市場。請只回傳JSON格式，不要其他文字：{"days":[{"day":1,"date":"","itinerary":[{"time":"09:00","name":"景點名稱","type":"景點","emoji":"🏛","address":"地址","transitToNext":"交通方式10分鐘","duration":"1.5小時","cost":"約NT$200","tips":"實用小提示"}]}]}。每天安排5~7個地點，包含餐廳、景點、購物，使用繁體中文。`
         }]
       })
     })
