@@ -6,11 +6,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, Calendar, MapPin, Users, DollarSign,
   Clock, ChevronDown, ChevronUp, Loader2, Pencil,
-  Trash2, Cloud, Sun, CloudRain, Wind, Droplets,
+  Trash2, Cloud, Sun, CloudRain, Wind, Droplets, Check, X,
 } from 'lucide-react'
-import { getTrip, getTripDays, deleteTrip } from '@/lib/firestore'
+import { getTrip, getTripDays, updateTrip, deleteTrip } from '@/lib/firestore'
 import { useAuthStore, useTripStore } from '@/store'
 import type { Trip, TripDay, PlaceItem } from '@/types'
+import toast from 'react-hot-toast'
 import { ExportPDFButton } from '@/components/trip/ExportPDFButton'
 
 // ── 天氣圖示 ────────────────────────────────────────────────────────────────
@@ -43,6 +44,55 @@ const typeColor: Record<PlaceItem['type'], string> = {
   '購物': 'bg-pink-50 text-pink-600',
   '交通': 'bg-gray-50 text-gray-500',
   '住宿': 'bg-purple-50 text-purple-600',
+}
+
+
+// ── 可編輯欄位 ───────────────────────────────────────────────────────────────
+function EditableField({
+  label, icon, value, type = 'text', onSave,
+}: {
+  label: string
+  icon: React.ReactNode
+  value: string | number
+  type?: string
+  onSave: (v: string) => Promise<void>
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft]     = useState(String(value))
+  const [saving, setSaving]   = useState(false)
+
+  async function handleSave() {
+    setSaving(true)
+    await onSave(draft)
+    setSaving(false)
+    setEditing(false)
+  }
+
+  return (
+    <div className="bg-white/15 rounded-2xl p-3 backdrop-blur-sm cursor-pointer"
+      onClick={() => !editing && setEditing(true)}>
+      <div className="flex items-center gap-1 text-white/65 text-xs mb-1">
+        {icon} {label}
+      </div>
+      {editing ? (
+        <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+          <input autoFocus type={type} value={draft}
+            onChange={e => setDraft(e.target.value)}
+            className="flex-1 bg-white/20 text-white text-sm font-semibold rounded-lg px-2 py-1 outline-none min-w-0" />
+          <button onClick={handleSave} disabled={saving}
+            className="w-6 h-6 rounded-full bg-white/30 flex items-center justify-center">
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+          </button>
+          <button onClick={() => { setEditing(false); setDraft(String(value)) }}
+            className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      ) : (
+        <p className="text-sm font-semibold text-white">{value} <span className="text-white/40 text-xs">（點擊修改）</span></p>
+      )}
+    </div>
+  )
 }
 
 // ── 主頁面 ──────────────────────────────────────────────────────────────────
@@ -105,6 +155,18 @@ export default function TripDetailPage() {
       alert('刪除失敗，請稍後再試')
       setDeleting(false)
     }
+  }
+
+
+  // 儲存單一欄位
+  async function saveField(field: keyof Trip, raw: string) {
+    if (!trip) return
+    const value = field === 'budget' || field === 'travelers' ? Number(raw) : raw
+    const updated = { ...trip, [field]: value } as Trip
+    await updateTrip(trip.tripId, { [field]: value })
+    setTrip(updated)
+    setCurrentTrip(updated)
+    toast.success('已儲存')
   }
 
   // ── 載入中 ──
@@ -173,30 +235,17 @@ export default function TripDetailPage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
 
-        {/* 操作按鈕 */}
+        {/* 刪除按鈕 */}
         {isOwner && (
-          <div className="absolute top-4 right-4 z-10 flex gap-2">
-            <button
-              onClick={() => router.push(`/trips/${id}/edit`)}
-              className="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-red-400/60 transition"
-            >
-              {deleting
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : <Trash2 className="w-4 h-4" />}
-            </button>
-          </div>
+          <button onClick={handleDelete} disabled={deleting}
+            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-red-400/60 transition">
+            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+          </button>
         )}
 
         {/* PDF 匯出 */}
         {days && days.length > 0 && (
-          <div className="absolute top-4 right-16 z-10">
+          <div className="absolute top-4 left-14 z-10">
             <ExportPDFButton trip={trip} days={days} />
           </div>
         )}
@@ -213,7 +262,12 @@ export default function TripDetailPage() {
               <StatusBadge status={trip.status} />
             </div>
 
-            <h1 className="text-2xl font-bold leading-snug mb-1">{trip.title}</h1>
+            {isOwner ? (
+              <EditableField label="" icon={null} value={trip.title}
+                onSave={v => saveField('title', v)} />
+            ) : (
+              <h1 className="text-2xl font-bold leading-snug mb-1">{trip.title}</h1>
+            )}
             <div className="flex items-center gap-1 text-white/75 text-sm mb-5">
               <MapPin className="w-3.5 h-3.5" />
               <span>{trip.destination}，{trip.country}</span>
@@ -263,37 +317,30 @@ export default function TripDetailPage() {
               ))}
             </div>
 
-            {/* 預算 */}
-            <div className="bg-white/15 rounded-2xl px-4 py-3 backdrop-blur-sm flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-white/65" />
-                <div>
-                  <p className="text-xs text-white/65">總預算</p>
-                  <p className="text-lg font-bold">
-                    {trip.currency} {trip.budget?.toLocaleString() ?? '—'}
+            {/* 預算 + 估算花費 */}
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <div className="bg-white/15 rounded-2xl px-4 py-3 backdrop-blur-sm">
+                <div className="flex items-center gap-1 text-white/65 text-xs mb-1">
+                  <DollarSign className="w-3 h-3" /> 總預算
+                </div>
+                <p className="text-base font-bold">{trip.currency} {trip.budget?.toLocaleString() ?? '—'}</p>
+              </div>
+              {estimatedCost > 0 && estimatedCost < trip.budget * 3 ? (
+                <div className="bg-white/15 rounded-2xl px-4 py-3 backdrop-blur-sm">
+                  <p className="text-xs text-white/65 mb-1">💰 AI 估算花費</p>
+                  <p className="text-base font-bold">{trip.currency} {estimatedCost.toLocaleString()}</p>
+                  <p className={`text-xs mt-0.5 ${estimatedCost > trip.budget ? 'text-red-300' : 'text-emerald-300'}`}>
+                    {estimatedCost > trip.budget ? '⚠️ 超出預算' : '✅ 預算充足'}
                   </p>
                 </div>
-              </div>
-            {/* 估算花費 */}
-            {estimatedCost > 0 && estimatedCost < trip.budget * 3 && (
-              <div className="mt-3 bg-white/15 rounded-2xl px-4 py-3 backdrop-blur-sm">
-                <p className="text-xs text-white/65 mb-1">💰 AI 估算行程花費</p>
-                <div className="flex items-end justify-between">
-                  <p className="text-lg font-bold">{trip.currency} {estimatedCost.toLocaleString()}</p>
-                  <p className={`text-xs font-medium ${estimatedCost > trip.budget ? 'text-red-300' : 'text-emerald-300'}`}>
-                    {estimatedCost > trip.budget
-                      ? `⚠️ 超出預算 ${(estimatedCost - trip.budget).toLocaleString()}`
-                      : `✅ 預算還剩 ${(trip.budget - estimatedCost).toLocaleString()}`}
-                  </p>
-                </div>
-              </div>
-            )}
-
-              {trip.styles && trip.styles.length > 0 && (
-                <div className="flex gap-1 flex-wrap justify-end max-w-[140px]">
-                  {trip.styles.map(s => (
-                    <span key={s} className="text-xs bg-white/20 rounded-full px-2 py-0.5">{s}</span>
-                  ))}
+              ) : (
+                <div className="bg-white/15 rounded-2xl px-4 py-3 backdrop-blur-sm">
+                  <p className="text-xs text-white/65 mb-1">旅遊風格</p>
+                  <div className="flex gap-1 flex-wrap">
+                    {trip.styles?.slice(0,2).map(s => (
+                      <span key={s} className="text-xs bg-white/20 rounded-full px-2 py-0.5">{s}</span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -429,17 +476,7 @@ export default function TripDetailPage() {
         )}
       </div>
 
-      {/* ── 底部按鈕 ── */}
-      {isOwner && (
-        <div className="fixed bottom-20 left-0 right-0 px-4 z-10">
-          <button
-            onClick={() => router.push(`/trips/${id}/edit`)}
-            className="w-full py-3.5 rounded-2xl bg-brand-500 text-white font-semibold shadow-lg shadow-brand-500/25 active:scale-95 transition"
-          >
-            編輯行程
-          </button>
-        </div>
-      )}
+
     </div>
   )
 }
