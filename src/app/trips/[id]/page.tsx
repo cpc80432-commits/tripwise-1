@@ -275,7 +275,7 @@ export default function TripDetailPage() {
                 </div>
               </div>
             {/* 估算花費 */}
-            {estimatedCost > 0 && (
+            {estimatedCost > 0 && estimatedCost < trip.budget * 3 && (
               <div className="mt-3 bg-white/15 rounded-2xl px-4 py-3 backdrop-blur-sm">
                 <p className="text-xs text-white/65 mb-1">💰 AI 估算行程花費</p>
                 <div className="flex items-end justify-between">
