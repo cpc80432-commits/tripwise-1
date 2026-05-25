@@ -135,6 +135,15 @@ export default function TripDetailPage() {
   const totalDays = days.length
   const nights    = Math.max(totalDays - 1, 0)
 
+  // 自動估算行程總花費
+  const estimatedCost = days.reduce((total, day) => {
+    return total + (day.itinerary || []).reduce((dayTotal, place) => {
+      if (!place.cost) return dayTotal
+      const num = parseInt(place.cost.replace(/[^0-9]/g, ''))
+      return dayTotal + (isNaN(num) ? 0 : num)
+    }, 0)
+  }, 0)
+
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
 
@@ -253,6 +262,21 @@ export default function TripDetailPage() {
                   </p>
                 </div>
               </div>
+            {/* 估算花費 */}
+            {estimatedCost > 0 && (
+              <div className="mt-3 bg-white/15 rounded-2xl px-4 py-3 backdrop-blur-sm">
+                <p className="text-xs text-white/65 mb-1">💰 AI 估算行程花費</p>
+                <div className="flex items-end justify-between">
+                  <p className="text-lg font-bold">{trip.currency} {estimatedCost.toLocaleString()}</p>
+                  <p className={`text-xs font-medium ${estimatedCost > trip.budget ? 'text-red-300' : 'text-emerald-300'}`}>
+                    {estimatedCost > trip.budget
+                      ? `⚠️ 超出預算 ${(estimatedCost - trip.budget).toLocaleString()}`
+                      : `✅ 預算還剩 ${(trip.budget - estimatedCost).toLocaleString()}`}
+                  </p>
+                </div>
+              </div>
+            )}
+
               {trip.styles && trip.styles.length > 0 && (
                 <div className="flex gap-1 flex-wrap justify-end max-w-[140px]">
                   {trip.styles.map(s => (
