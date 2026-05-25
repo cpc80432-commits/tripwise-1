@@ -57,6 +57,7 @@ export default function TripDetailPage() {
   const [error,    setError]    = useState<string | null>(null)
   const [openDay,  setOpenDay]  = useState<number | null>(0)
   const [deleting, setDeleting] = useState(false)
+  const [weather, setWeather] = useState<any>(null)
 
   // 載入資料
   useEffect(() => {
@@ -72,6 +73,9 @@ export default function TripDetailPage() {
         setDays(tripDays)
         setCurrentTrip(tripData)
         setTripDays(tripDays)
+        // 抓天氣
+        fetch(`/api/weather?city=${encodeURIComponent(tripData.destination)}`)
+          .then(r => r.json()).then(setWeather).catch(() => {})
       } catch {
         setError('載入失敗，請稍後再試')
       } finally {
@@ -185,17 +189,17 @@ export default function TripDetailPage() {
             </div>
 
             {/* 天氣（如果有） */}
-            {days[0]?.weather && (
+            {(weather || days[0]?.weather) && (
               <div className="flex items-center gap-3 mb-4 bg-white/15 rounded-2xl px-4 py-2.5 backdrop-blur-sm w-fit">
-                <WeatherIcon icon={days[0].weather.icon} className="w-6 h-6" />
+                <WeatherIcon icon={(weather || days[0]?.weather)?.icon} className="w-6 h-6" />
                 <span className="text-sm font-medium">
-                  {Math.round(days[0].weather.temp)}°C・{days[0].weather.description}
+                  {(weather || days[0]?.weather)?.temp}°C・{(weather || days[0]?.weather)?.description}
                 </span>
                 <span className="text-white/60 text-xs flex items-center gap-1">
-                  <Droplets className="w-3 h-3" />{days[0].weather.humidity}%
+                  <Droplets className="w-3 h-3" />{(weather || days[0]?.weather)?.humidity}%
                 </span>
                 <span className="text-white/60 text-xs flex items-center gap-1">
-                  <Wind className="w-3 h-3" />{days[0].weather.windSpeed}m/s
+                  <Wind className="w-3 h-3" />{(weather || days[0]?.weather)?.windSpeed}m/s
                 </span>
               </div>
             )}
