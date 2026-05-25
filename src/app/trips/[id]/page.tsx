@@ -15,6 +15,7 @@ import { ExportPDFButton } from '@/components/trip/ExportPDFButton'
 
 // ── 天氣圖示 ────────────────────────────────────────────────────────────────
 function WeatherIcon({ icon, className = 'w-5 h-5' }: { icon: string; className?: string }) {
+  if (!icon) return <Cloud className={`${className} text-gray-300`} />
   if (icon.includes('01')) return <Sun className={`${className} text-yellow-400`} />
   if (icon.includes('09') || icon.includes('10')) return <CloudRain className={`${className} text-blue-400`} />
   return <Cloud className={`${className} text-gray-300`} />
@@ -73,9 +74,18 @@ export default function TripDetailPage() {
         setDays(tripDays)
         setCurrentTrip(tripData)
         setTripDays(tripDays)
-        // 抓天氣
-        fetch(`/api/weather?city=${encodeURIComponent(tripData.destination)}`)
-          .then(r => r.json()).then(setWeather).catch(() => {})
+        // 抓天氣 - 先試原文，失敗再試英文
+        const weatherCities = [tripData.destination, tripData.country, 'Tokyo']
+        const tryWeather = async (cities: string[]) => {
+          for (const city of cities) {
+            try {
+              const r = await fetch(`/api/weather?city=${encodeURIComponent(city)}`)
+              const d = await r.json()
+              if (r.ok && d.temp !== undefined) { setWeather(d); return }
+            } catch {}
+          }
+        }
+        tryWeather(weatherCities)
       } catch {
         setError('載入失敗，請稍後再試')
       } finally {
@@ -189,18 +199,30 @@ export default function TripDetailPage() {
             </div>
 
             {/* 天氣（如果有） */}
-            {(weather || days[0]?.weather) && (
-              <div className="flex items-center gap-3 mb-4 bg-white/15 rounded-2xl px-4 py-2.5 backdrop-blur-sm w-fit">
-                <WeatherIcon icon={(weather || days[0]?.weather)?.icon} className="w-6 h-6" />
-                <span className="text-sm font-medium">
-                  {(weather || days[0]?.weather)?.temp}°C・{(weather || days[0]?.weather)?.description}
-                </span>
-                <span className="text-white/60 text-xs flex items-center gap-1">
-                  <Droplets className="w-3 h-3" />{(weather || days[0]?.weather)?.humidity}%
-                </span>
-                <span className="text-white/60 text-xs flex items-center gap-1">
-                  <Wind className="w-3 h-3" />{(weather || days[0]?.weather)?.windSpeed}m/s
-                </span>
+            {weather && (
+              <div className="mb-4 bg-white/15 rounded-2xl px-4 py-3 backdrop-blur-sm">
+                <div className="flex items-center gap-3 mb-1">
+                  <WeatherIcon icon={weather.icon} className="w-8 h-8" />
+                  <div>
+                    <div className="flex items-end gap-1">
+                      <span className="text-3xl font-bold">{weather.temp}°</span>
+                      <span className="text-white/70 text-sm mb-1">C</span>
+                    </div>
+                    <p className="text-white/80 text-xs capitalize">{weather.description}</p>
+                  </div>
+                  <div className="ml-auto text-right">
+                    <p className="text-white/60 text-xs">{weather.city}</p>
+                    <p className="text-white/60 text-xs mt-0.5">體感 {weather.feelsLike}°C</p>
+                  </div>
+                </div>
+                <div className="flex gap-4 mt-2 pt-2 border-t border-white/20">
+                  <span className="text-xs text-white/70 flex items-center gap-1">
+                    <Droplets className="w-3 h-3" /> 濕度 {weather.humidity}%
+                  </span>
+                  <span className="text-xs text-white/70 flex items-center gap-1">
+                    <Wind className="w-3 h-3" /> 風速 {weather.windSpeed} m/s
+                  </span>
+                </div>
               </div>
             )}
 
