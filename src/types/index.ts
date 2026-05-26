@@ -41,7 +41,8 @@ export interface PlaceItem {
   lng?: number
   duration?: number        // minutes
   notes?: string
-  transitToNext?: string   // e.g. "地鐵 15 分鐘"
+  transitToNext?: string
+  cost?: number | string   // e.g. "地鐵 15 分鐘"
 }
 
 export interface TripDay {

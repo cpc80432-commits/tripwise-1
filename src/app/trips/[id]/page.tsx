@@ -13,6 +13,7 @@ import { useAuthStore, useTripStore } from '@/store'
 import type { Trip, TripDay, PlaceItem } from '@/types'
 import toast from 'react-hot-toast'
 import { ExportPDFButton } from '@/components/trip/ExportPDFButton'
+import { NearbyPanel } from '@/components/trip/NearbyPanel'
 
 // ── 天氣圖示 ────────────────────────────────────────────────────────────────
 function WeatherIcon({ icon, className = 'w-5 h-5' }: { icon: string; className?: string }) {
@@ -92,6 +93,7 @@ function EditableField({
         <p className="text-sm font-semibold text-white">{value} <span className="text-white/40 text-xs">（點擊修改）</span></p>
       )}
     </div>
+      
   )
 }
 
@@ -109,6 +111,7 @@ export default function TripDetailPage() {
   const [openDay,  setOpenDay]  = useState<number | null>(0)
   const [deleting, setDeleting] = useState(false)
   const [weather, setWeather] = useState<any>(null)
+  const [nearbyPlace, setNearbyPlace] = useState<{name:string;type:string;dayIdx:number} | null>(null)
 
   // 載入資料
   useEffect(() => {
@@ -303,28 +306,48 @@ export default function TripDetailPage() {
 
             {/* 資訊卡片 */}
             <div className="grid grid-cols-3 gap-2 mb-2">
-              {[
-                { icon: <Calendar className="w-4 h-4" />, label: '出發', value: trip.startDate },
-                { icon: <Clock className="w-4 h-4" />,    label: '天數', value: `${totalDays}天${nights}夜` },
-                { icon: <Users className="w-4 h-4" />,    label: '人數', value: `${trip.travelers}人` },
-              ].map(({ icon, label, value }) => (
-                <div key={label} className="bg-white/15 rounded-2xl p-3 backdrop-blur-sm">
-                  <div className="flex items-center gap-1 text-white/65 text-xs mb-1">
-                    {icon} {label}
+              {isOwner ? (
+                <>
+                  <EditableField label="出發日" icon={<Calendar className="w-3 h-3" />}
+                    value={trip.startDate} type="date" onSave={v => saveField('startDate', v)} />
+                  <div className="bg-white/15 rounded-2xl p-3 backdrop-blur-sm">
+                    <div className="flex items-center gap-1 text-white/65 text-xs mb-1">
+                      <Clock className="w-3 h-3" /> 天數
+                    </div>
+                    <p className="text-sm font-semibold">{totalDays}天{nights}夜</p>
                   </div>
-                  <p className="text-sm font-semibold">{value}</p>
-                </div>
-              ))}
+                  <EditableField label="人數" icon={<Users className="w-3 h-3" />}
+                    value={trip.travelers} type="number" onSave={v => saveField('travelers', v)} />
+                </>
+              ) : (
+                <>
+                  {[
+                    { icon: <Calendar className="w-4 h-4" />, label: '出發', value: trip.startDate },
+                    { icon: <Clock className="w-4 h-4" />, label: '天數', value: `${totalDays}天${nights}夜` },
+                    { icon: <Users className="w-4 h-4" />, label: '人數', value: `${trip.travelers}人` },
+                  ].map(({ icon, label, value }) => (
+                    <div key={label} className="bg-white/15 rounded-2xl p-3 backdrop-blur-sm">
+                      <div className="flex items-center gap-1 text-white/65 text-xs mb-1">{icon} {label}</div>
+                      <p className="text-sm font-semibold">{value}</p>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
 
             {/* 預算 + 估算花費 */}
             <div className="grid grid-cols-2 gap-2 mb-2">
-              <div className="bg-white/15 rounded-2xl px-4 py-3 backdrop-blur-sm">
-                <div className="flex items-center gap-1 text-white/65 text-xs mb-1">
-                  <DollarSign className="w-3 h-3" /> 總預算
+              {isOwner ? (
+                <EditableField label="總預算" icon={<DollarSign className="w-3 h-3" />}
+                  value={trip.budget} type="number" onSave={v => saveField('budget', v)} />
+              ) : (
+                <div className="bg-white/15 rounded-2xl px-4 py-3 backdrop-blur-sm">
+                  <div className="flex items-center gap-1 text-white/65 text-xs mb-1">
+                    <DollarSign className="w-3 h-3" /> 總預算
+                  </div>
+                  <p className="text-base font-bold">{trip.currency} {trip.budget?.toLocaleString() ?? '—'}</p>
                 </div>
-                <p className="text-base font-bold">{trip.currency} {trip.budget?.toLocaleString() ?? '—'}</p>
-              </div>
+              )}
               {estimatedCost > 0 && estimatedCost < trip.budget * 3 ? (
                 <div className="bg-white/15 rounded-2xl px-4 py-3 backdrop-blur-sm">
                   <p className="text-xs text-white/65 mb-1">💰 AI 估算花費</p>
@@ -451,6 +474,12 @@ export default function TripDetailPage() {
                                       → {place.transitToNext}
                                     </p>
                                   )}
+                                  <button
+                                    onClick={() => setNearbyPlace({ name: place.name, type: place.type, dayIdx: idx })}
+                                    className="mt-2 text-xs text-brand-500 flex items-center gap-1 hover:text-brand-700"
+                                  >
+                                    ✨ 查看附近推薦
+                                  </button>
                                 </div>
                               </div>
                               {pIdx < day.itinerary.length - 1 && (
@@ -475,8 +504,20 @@ export default function TripDetailPage() {
           </div>
         )}
       </div>
-
-
+      {/* 周邊推薦面板 */}
+      <AnimatePresence>
+        {nearbyPlace && (
+          <NearbyPanel
+            placeName={nearbyPlace.name}
+            placeType={nearbyPlace.type}
+            destination={trip.destination}
+            onClose={() => setNearbyPlace(null)}
+            onAdd={(rec) => {
+              setNearbyPlace(null)
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
